@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye İç Hatlar Uçuş ve Bilet Arama Rehberi</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b1120 0%, #1e293b 100%);
+            --card-bg: rgba(30, 41, 59, 0.78);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #0284c7;
+            --obilet-color: #d23b38;
+            --obilet-hover: #b91c1c;
+            --enuygun-color: #2dc44d;
+            --enuygun-hover: #16a34a;
+            --danger: #f43f5e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 6px;
+        }
+
+        /* Arama Paneli */
+        .search-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            padding: 25px;
+            border-radius: 18px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr 180px;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        select, input[type="date"] {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        select:focus, input[type="date"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+        }
+
+        /* Yön Değiştir Butonu */
+        .swap-btn {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: var(--accent);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .swap-btn:hover {
+            background: var(--accent);
+            color: #0f172a;
+            transform: rotate(180deg);
+        }
+
+        .action-row {
+            grid-column: 1 / -1;
+            margin-top: 5px;
+        }
+
+        .search-btn {
+            width: 100%;
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .search-btn:hover {
+            background: var(--accent-hover);
+            color: #fff;
+        }
+
+        .search-btn:active {
+            transform: scale(0.99);
+        }
+
+        /* Sonuç Alanı */
+        .result-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            padding: 25px;
+            border-radius: 18px;
+            display: none;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .route-summary {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .route-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .route-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Uçuş Yok Uyarısı */
+        .no-flight-box {
+            background: rgba(244, 63, 94, 0.12);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            color: #fecdd3;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .no-flight-box strong {
+            display: block;
+            font-size: 1.1rem;
+            color: var(--danger);
+            margin-bottom: 6px;
+        }
+
+        /* Link Listesi */
+        .links-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .provider-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 15px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .provider-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+        }
+
+        .provider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .provider-name {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+
+        .provider-tag {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+        }
+
+        .provider-desc {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .provider-link {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            color: #ffffff;
+            font-weight: 700;
+            padding: 12px 16px;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .btn-obilet {
+            background: var(--obilet-color);
+        }
+
+        .btn-obilet:hover {
+            background: var(--obilet-hover);
+        }
+
+        .btn-enuygun {
+            background: var(--enuygun-color);
+            color: #052e16;
+        }
+
+        .btn-enuygun:hover {
+            background: var(--enuygun-hover);
+            color: #ffffff;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            padding-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* Mobil Uyum */
+        @media (max-width: 768px) {
+            .search-panel {
+                grid-template-columns: 1fr;
+            }
+            .swap-btn {
+                justify-self: center;
+                transform: rotate(90deg);
+            }
+            .swap-btn:hover {
+                transform: rotate(270deg);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>✈️ Türkiye İç Hatlar Uçuş Rehberi</h1>
+        <p>Türkiye'deki tüm sivil havalimanları arasında aktif uçuş hattı kontrolü ve resmi bilet arama yönlendirmesi</p>
+    </header>
+
+    <main class="search-panel">
+        <div class="form-group">
+            <label for="originSelect">Nereden (Kalkış Havalimanı)</label>
+            <select id="originSelect"></select>
+        </div>
+
+        <button type="button" class="swap-btn" id="swapBtn" title="Havalimanlarını Değiştir">⇄</button>
+
+        <div class="form-group">
+            <label for="destSelect">Nereye (Varış Havalimanı)</label>
+            <select id="destSelect"></select>
+        </div>
+
+        <div class="form-group">
+            <label for="flightDate">Gidiş Tarihi</label>
+            <input type="date" id="flightDate">
+        </div>
+
+        <div class="action-row">
+            <button type="button" class="search-btn" id="checkFlightBtn">Uçuş Hatlarını ve Bilet Linklerini Listele</button>
+        </div>
+    </main>
+
+    <section class="result-section" id="resultSection">
+        <div class="route-summary">
+            <div class="route-title" id="routeTitle">-- ➔ --</div>
+            <div class="route-badge" id="routeDateBadge">--</div>
+        </div>
+
+        <div id="resultContent">
+            <!-- JS ile uçuş varsa linkler, yoksa uyarı basılacak -->
+        </div>
+    </section>
+
+    <footer>
+        Tamamen telifsiz açık kaynak arayüz. Bu platform bilet satışı yapmaz; seçtiğiniz rota ve tarih parametrelerini doğrudan Obilet ve Enuygun resmi arama ekranlarına aktarır.
+    </footer>
+</div>
+
+<script>
+    /**
+     * 1. TÜRKİYE AKTİF SİVİL HAVALİMANLARI VERİTABANI
+     * obiletSlug: Obilet'in resmi rota URL yapısı (örn: /ucak-bileti/istanbul-ankara)
+     * enuygunSlug & enuygunCode: Enuygun'un resmi havalimanı/şehir rota URL yapısı (örn: /ucak-bileti/istanbul-ankara-ist-anka/?gidis=GG.AA.YYYY)
+     */
+    const TURKIYE_HAVALIMANLARI = [
+        { code: "IST", city: "İstanbul", name: "İstanbul Havalimanı", hubType: "main", obiletSlug: "istanbul", enuygunSlug: "istanbul-havalimani", enuygunCode: "ist" },
+        { code: "SAW", city: "İstanbul", name: "Sabiha Gökçen Havalimanı", hubType: "main", obiletSlug: "istanbul", enuygunSlug: "istanbul-sabiha-gokcen-havalimani", enuygunCode: "saw" },
+        { code: "ESB", city: "Ankara", name: "Esenboğa Havalimanı", hubType: "main", obiletSlug: "ankara", enuygunSlug: "ankara", enuygunCode: "anka" },
+        { code: "ADB", city: "İzmir", name: "Adnan Menderes Havalimanı", hubType: "main", obiletSlug: "izmir", enuygunSlug: "izmir", enuygunCode: "izma" },
+        { code: "AYT", city: "Antalya", name: "Antalya Havalimanı", hubType: "main", obiletSlug: "antalya", enuygunSlug: "antalya", enuygunCode: "ayta" },
+        { code: "COV", city: "Adana / Mersin", name: "Çukurova Uluslararası Havalimanı", hubType: "main", obiletSlug: "adana", enuygunSlug: "cukurova", enuygunCode: "cu4a" },
+        { code: "TZX", city: "Trabzon", name: "Trabzon Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "AYT", "COV", "GZT", "BJV", "DLM"], obiletSlug: "trabzon", enuygunSlug: "trabzon", enuygunCode: "tzxa" },
+        { code: "GZT", city: "Gaziantep", name: "Gaziantep Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "AYT", "TZX", "BJV"], obiletSlug: "gaziantep", enuygunSlug: "gaziantep", enuygunCode: "gzta" },
+        { code: "BJV", city: "Muğla (Bodrum)", name: "Milas-Bodrum Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "COV", "GZT", "TZX"], obiletSlug: "bodrum", enuygunSlug: "bodrum", enuygunCode: "bxna" },
+        { code: "DLM", city: "Muğla (Dalaman)", name: "Dalaman Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "TZX"], obiletSlug: "dalaman", enuygunSlug: "dalaman", enuygunCode: "dlma" },
+        { code: "ASR", city: "Kayseri", name: "Kayseri Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "AYT"], obiletSlug: "kayseri", enuygunSlug: "kayseri", enuygunCode: "asra" },
+        { code: "SZF", city: "Samsun", name: "Çarşamba Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "AYT"], obiletSlug: "samsun", enuygunSlug: "samsun", enuygunCode: "szfa" },
+        { code: "VAN", city: "Van", name: "Ferit Melen Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "AYT", "COV"], obiletSlug: "van", enuygunSlug: "van", enuygunCode: "vana" },
+        { code: "DIY", city: "Diyarbakır", name: "Diyarbakır Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB", "AYT"], obiletSlug: "diyarbakir", enuygunSlug: "diyarbakir", enuygunCode: "diya" },
+        { code: "ERZ", city: "Erzurum", name: "Erzurum Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "erzurum", enuygunSlug: "erzurum", enuygunCode: "erza" },
+        { code: "HTY", city: "Hatay", name: "Hatay Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "hatay", enuygunSlug: "hatay", enuygunCode: "htya" },
+        { code: "KYA", city: "Konya", name: "Konya Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ADB"], obiletSlug: "konya", enuygunSlug: "konya", enuygunCode: "kyaa" },
+        { code: "GNY", city: "Şanlıurfa", name: "GAP Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "sanliurfa", enuygunSlug: "sanliurfa", enuygunCode: "sfqa" },
+        { code: "MLX", city: "Malatya", name: "Malatya Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "malatya", enuygunSlug: "malatya", enuygunCode: "mlxa" },
+        { code: "EZS", city: "Elazığ", name: "Elazığ Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "elazig", enuygunSlug: "elazig", enuygunCode: "ezsa" },
+        { code: "VAS", city: "Sivas", name: "Nuri Demirağ Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "sivas", enuygunSlug: "sivas", enuygunCode: "vasa" },
+        { code: "OGU", city: "Ordu / Giresun", name: "Ordu-Giresun Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "ordu", enuygunSlug: "ordu-giresun", enuygunCode: "ogua" },
+        { code: "RZV", city: "Rize / Artvin", name: "Rize-Artvin Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "rize", enuygunSlug: "rize-artvin", enuygunCode: "rzva" },
+        { code: "DNZ", city: "Denizli", name: "Çardak Havalimanı", hubType: "regional", directTo: ["IST", "SAW"], obiletSlug: "denizli", enuygunSlug: "denizli", enuygunCode: "dnza" },
+        { code: "GZP", city: "Antalya (Alanya)", name: "Gazipaşa-Alanya Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "alanya", enuygunSlug: "alanya-gazipasa", enuygunCode: "gzpa" },
+        { code: "MQM", city: "Mardin", name: "Prof. Dr. Aziz Sancar Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "mardin", enuygunSlug: "mardin", enuygunCode: "mqma" },
+        { code: "BAL", city: "Batman", name: "Batman Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "batman", enuygunSlug: "batman", enuygunCode: "bala" },
+        { code: "KCM", city: "Kahramanmaraş", name: "Kahramanmaraş Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "kahramanmaras", enuygunSlug: "kahramanmaras", enuygunCode: "kcma" },
+        { code: "KSY", city: "Kars", name: "Harakani Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB", "ADB"], obiletSlug: "kars", enuygunSlug: "kars", enuygunCode: "ksya" },
+        { code: "AJI", city: "Ağrı", name: "Ahmed-i Hani Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "agri", enuygunSlug: "agri", enuygunCode: "ajia" },
+        { code: "IGD", city: "Iğdır", name: "Şehit Bülent Aydın Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "igdir", enuygunSlug: "igdir", enuygunCode: "igda" },
+        { code: "MSR", city: "Muş", name: "Muş Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "mus", enuygunSlug: "mus", enuygunCode: "msra" },
+        { code: "BGG", city: "Bingöl", name: "Bingöl Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "bingol", enuygunSlug: "bingol", enuygunCode: "bgga" },
+        { code: "ERC", city: "Erzincan", name: "Yıldırım Akbulut Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "erzincan", enuygunSlug: "erzincan", enuygunCode: "erca" },
+        { code: "NKT", city: "Şırnak", name: "Şerafettin Elçi Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "sirnak", enuygunSlug: "sirnak", enuygunCode: "nkta" },
+        { code: "YKO", city: "Hakkari", name: "Yüksekova Selahaddin Eyyubi Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "hakkari", enuygunSlug: "hakkari", enuygunCode: "ykoa" },
+        { code: "SXZ", city: "Siirt", name: "Siirt Havalimanı", hubType: "regional", directTo: ["IST", "ESB"], obiletSlug: "siirt", enuygunSlug: "siirt", enuygunCode: "sxza" },
+        { code: "ADF", city: "Adıyaman", name: "Adıyaman Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "adiyaman", enuygunSlug: "adiyaman", enuygunCode: "adfa" },
+        { code: "EDO", city: "Balıkesir (Edremit)", name: "Koca Seyit Havalimanı", hubType: "regional", directTo: ["IST", "SAW", "ESB"], obiletSlug: "edremit", enuygunSlug: "edremit-korfez", enuygunCode: "edoa" },
+        { code: "CKZ", city: "Çanakkale", name: "Çanakkale Havalimanı", hubType: "regional", directTo: ["IST", "ESB"], obiletSlug: "canakkale", enuygunSlug: "canakkale", enuygunCode: "ckza" },
+        { code: "AOE", city: "Eskişehir", name: "Hasan Polatkan Havalimanı", hubType: "regional", directTo: [], obiletSlug: "eskisehir", enuygunSlug: "eskisehir", enuygunCode: "aoea" },
+        { code: "KZR", city: "Kütahya / Afyon / Uşak", name: "Zafer Havalimanı", hubType: "regional", directTo: ["IST"], obiletSlug: "kutahya", enuygunSlug: "kutahya-zafer", enuygunCode: "kzra" },
+        { code: "ISE", city: "Isparta", name: "Süleyman Demirel Havalimanı", hubType: "regional", directTo: ["IST"], obiletSlug: "isparta", enuygunSlug: "isparta", enuygunCode: "isea" },
+        { code: "KFS", city: "Kastamonu", name: "Kastamonu Havalimanı", hubType: "regional", directTo: ["IST"], obiletSlug: "kastamonu", enuygunSlug: "kastamonu", enuygunCode: "kfsa" },
+        { code: "MZH", city: "Amasya", name: "Merzifon Havalimanı", hubType: "regional", directTo: ["IST", "SAW"], obiletSlug: "amasya", enuygunSlug: "amasya-merzifon", enuygunCode: "mzha" },
+        { code: "TJK", city: "Tokat", name: "Tokat Havalimanı", hubType: "regional", directTo: ["IST", "SAW"], obiletSlug: "tokat", enuygunSlug: "tokat", enuygunCode: "tjka" },
+        { code: "NOP", city: "Sinop", name: "Sinop Havalimanı", hubType: "regional", directTo: ["IST", "SAW"], obiletSlug: "sinop", enuygunSlug: "sinop", enuygunCode: "nopa" },
+        { code: "ONQ", city: "Zonguldak", name: "Çaycuma Havalimanı", hubType: "regional", directTo: ["IST"], obiletSlug: "zonguldak", enuygunSlug: "zonguldak", enuygunCode: "onqa" },
+        { code: "NAV", city: "Nevşehir", name: "Kapadokya Havalimanı", hubType: "regional", directTo: ["IST", "SAW"], obiletSlug: "nevsehir", enuygunSlug: "nevsehir", enuygunCode: "nava" },
+        { code: "TEQ", city: "Tekirdağ (Çorlu)", name: "Atatürk Havalimanı", hubType: "regional", directTo: ["ESB"], obiletSlug: "tekirdag", enuygunSlug: "tekirdag-corlu", enuygunCode: "teqa" }
+    ];
+
+    // DOM Seçiciler
+    const originSelect = document.getElementById("originSelect");
+    const destSelect = document.getElementById("destSelect");
+    const flightDateInput = document.getElementById("flightDate");
+    const swapBtn = document.getElementById("swapBtn");
+    const checkFlightBtn = document.getElementById("checkFlightBtn");
+    const resultSection = document.getElementById("resultSection");
+    const routeTitle = document.getElementById("routeTitle");
+    const routeDateBadge = document.getElementById("routeDateBadge");
+    const resultContent = document.getElementById("resultContent");
+
+    // Türkçe alfabetik sıralama ile açılır listeleri doldur
+    function populateAirports() {
+        const sorted = [...TURKIYE_HAVALIMANLARI].sort((a, b) => 
+            a.city.localeCompare(b.city, "tr-TR")
+        );
+
+        sorted.forEach(airport => {
+            const label = `${airport.city} - ${airport.name} (${airport.code})`;
+            
+            const opt1 = document.createElement("option");
+            opt1.value = airport.code;
+            opt1.textContent = label;
+            originSelect.appendChild(opt1);
+
+            const opt2 = document.createElement("option");
+            opt2.value = airport.code;
+            opt2.textContent = label;
+            destSelect.appendChild(opt2);
+        });
+
+        // Varsayılan olarak İstanbul (IST) -> Ankara (ESB) seçili gelsin
+        originSelect.value = "IST";
+        destSelect.value = "ESB";
+    }
+
+    // Tarih seçiciye bugünün tarihini varsayılan ve minimum değer olarak ata
+    function initDate() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, "0");
+        const dd = String(today.getDate()).padStart(2, "0");
+        const formatted = `${yyyy}-${mm}-${dd}`;
+        
+        flightDateInput.value = formatted;
+        flightDateInput.min = formatted;
+    }
+
+    // İki havalimanı arasında aktif iç hat uçuş bağlantısı olup olmadığını kontrol et
+    function hasActiveFlightRoute(origin, dest) {
+        if (origin.code === dest.code) return false;
+        // Aynı şehrin iki havalimanı arası (IST <-> SAW) iç hat uçuşu yoktur
+        if (origin.code === "IST" && dest.code === "SAW") return false;
+        if (origin.code === "SAW" && dest.code === "IST") return false;
+
+        // En az birinin aktif iç hat uçuş ağı yoksa (Örn: Eskişehir AOE)
+        if (origin.hubType === "regional" && origin.directTo.length === 0) return false;
+        if (dest.hubType === "regional" && dest.directTo.length === 0) return false;
+
+        // İkisi de ana aktarma merkeziyse (IST, SAW, ESB, ADB, AYT, COV) kesin uçuş vardır
+        if (origin.hubType === "main" && dest.hubType === "main") return true;
+
+        // Biri ana aktarma merkeziyse ve bölgesel havalimanının o merkeze uçuşu varsa
+        if (origin.hubType === "main" && dest.directTo.includes(origin.code)) return true;
+        if (dest.hubType === "main" && origin.directTo.includes(dest.code)) return true;
+
+        // İki bölgesel havalimanı arasında doğrudan sefer varsa (Örn: Trabzon <-> Gaziantep)
+        if (origin.directTo && origin.directTo.includes(dest.code)) return true;
+
+        return false;
+    }
+
+    // Obilet ve Enuygun için doğrulanmış resmi rota URL'lerini oluştur ve ekrana bas
+    function checkAndRenderFlights() {
+        const originCode = originSelect.value;
+        const destCode = destSelect.value;
+        const dateVal = flightDateInput.value;
+
+        const origin = TURKIYE_HAVALIMANLARI.find(a => a.code === originCode);
+        const dest = TURKIYE_HAVALIMANLARI.find(a => a.code === destCode);
+
+        if (!origin || !dest || !dateVal) return;
+
+        // Tarih formatlama (GG.AA.YYYY)
+        const [year, month, day] = dateVal.split("-");
+        const trDateDisplay = `${day}.${month}.${year}`;
+
+        routeTitle.textContent = `${origin.city} (${origin.code}) ➔ ${dest.city} (${dest.code})`;
+        routeDateBadge.textContent = `Tarih: ${trDateDisplay}`;
+        resultSection.style.display = "flex";
+
+        const isRouteAvailable = hasActiveFlightRoute(origin, dest);
+
+        // Uçuş yoksa link listeleme, bilgilendirme göster
+        if (!isRouteAvailable) {
+            resultContent.innerHTML = `
+                <div class="no-flight-box">
+                    <strong>Bu Rota İçin Direkt İç Hat Uçuşu Bulunmuyor</strong>
+                    Seçtiğiniz <b>${origin.name}</b> ile <b>${dest.name}</b> arasında tarifeli direkt iç hat seferi bulunmamaktadır. Lütfen İstanbul (IST/SAW), Ankara (ESB) veya İzmir (ADB) aktarmalı seçenekleri değerlendirin.
+                </div>
+            `;
+            return;
+        }
+
+        // 1. Obilet Doğrulanmış Resmi Rota URL Şablonu
+        // Örnek: https://www.obilet.com/ucak-bileti/istanbul-ankara
+        const obiletUrl = `https://www.obilet.com/ucak-bileti/${origin.obiletSlug}-${dest.obiletSlug}`;
+
+        // 2. Enuygun Doğrulanmış Resmi Havalimanı/Şehir Rota & Tarih URL Şablonu
+        // Örnek: https://www.enuygun.com/ucak-bileti/istanbul-havalimani-ankara-ist-anka/?gidis=28.11.2026
+        const enuygunUrl = `https://www.enuygun.com/ucak-bileti/${origin.enuygunSlug}-${dest.enuygunSlug}-${origin.enuygunCode}-${dest.enuygunCode}/?gidis=${trDateDisplay}`;
+
+        resultContent.innerHTML = `
+            <div class="links-list">
+                <div class="provider-card">
+                    <div>
+                        <div class="provider-header">
+                            <span class="provider-name" style="color: #f87171;">obilet.com</span>
+                            <span class="provider-tag">Resmi Rota Sayfası</span>
+                        </div>
+                        <p class="provider-desc" style="margin-top: 10px;">
+                            ${origin.city} (${origin.code}) - ${dest.city} (${dest.code}) hattındaki tüm havayolu seferlerini ve ${trDateDisplay} tarihli biletleri Obilet üzerinde listeleyin.
+                        </p>
+                    </div>
+                    <a href="${obiletUrl}" target="_blank" rel="noopener noreferrer" class="provider-link btn-obilet">
+                        Obilet'te Uçuşları Gör ↗
+                    </a>
+                </div>
+
+                <div class="provider-card">
+                    <div>
+                        <div class="provider-header">
+                            <span class="provider-name" style="color: #4ade80;">ENUYGUN</span>
+                            <span class="provider-tag">Tarihli Arama Sonucu</span>
+                        </div>
+                        <p class="provider-desc" style="margin-top: 10px;">
+                            ${origin.name} - ${dest.name} hattındaki ${trDateDisplay} tarihli güncel bilet fiyatlarını doğrudan Enuygun arama ekranında açın.
+                        </p>
+                    </div>
+                    <a href="${enuygunUrl}" target="_blank" rel="noopener noreferrer" class="provider-link btn-enuygun">
+                        Enuygun'da Uçuşları Gör ↗
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+
+    // Havalimanlarını yer değiştirme butonu
+    swapBtn.addEventListener("click", () => {
+        const temp = originSelect.value;
+        originSelect.value = destSelect.value;
+        destSelect.value = temp;
+        if (resultSection.style.display === "flex") {
+            checkAndRenderFlights();
+        }
+    });
+
+    // Sorgula butonu
+    checkFlightBtn.addEventListener("click", checkAndRenderFlights);
+
+    // Sayfa yüklendiğinde başlat
+    document.addEventListener("DOMContentLoaded", () => {
+        populateAirports();
+        initDate();
+    });
+</script>
+
+</body>
+</html>
